@@ -41,7 +41,7 @@
 Aquí tienes el resumen consolidado de los tres contenidos. Se eliminaron las repeticiones y se unificaron los criterios para que sirva como una única fuente de verdad para el desarrollo.
 ## 1. Arquitectura y Seguridad
 
-* Plataforma: Aplicación web Responsiva (optimizada para PC y TAL VEZ Móvil).
+* Plataforma: Aplicación web Responsiva (optimizada para PC y Móvil).
 * Control de Acceso: Login con usuario y contraseña, roles claros y capas de seguridad para evitar vulnerabilidades.
 * Roles del Sistema:
 * Administrador: Gestiona, asigna, frena procesos y visualiza métricas globales.
