@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time To-Do List</title>
+  <!-- Link to estilo.txt stylesheet served with CSS content type -->
+
+<link rel="stylesheet" href="/estilos_css/estilo.css">
+
+</head>
+<body>
+
+  <h1>To-Do List Manager</h1>
+
+  <!-- Collaborator View Selector -->
+  <div>
+    <label for="view-collaborator-select"><strong>Active View (Collaborator's Screen):</strong></label>
+    <select id="view-collaborator-select">
+      <option value="all">-- All Tasks --</option>
+      <!-- Dynamically populated -->
+    </select>
+    <span id="connection-status" style="margin-left: 10px; font-size: 0.9em; color: gray;">Connecting...</span>
+  </div>
+
+  <hr>
+
+  <!-- Task Creation Controls -->
+  <div>
+    <!-- Button for starting task creation -->
+    <button id="btn-create-task">Create Task</button>
+  </div>
+
+  <!-- Task Creation Form (hidden by default) -->
+  <div id="task-form-container" class="task-form-container hidden">
+    <h3>New Task Creation</h3>
+    <form id="task-form">
+      <div class="form-field">
+        <label for="task-title">Title:</label>
+        <input type="text" id="task-title" required placeholder="Enter task title">
+      </div>
+      
+      <div class="form-field">
+        <label for="task-desc">Description:</label>
+        <textarea id="task-desc" rows="3" placeholder="Enter task description"></textarea>
+      </div>
+
+      <div class="form-field">
+        <label>Assign to Collaborator:</label>
+        <div id="collaborator-assign-list">
+          <!-- Dynamically populated list of collaborators -->
+        </div>
+      </div>
+
+      <!-- Button for adding (saving) the task -->
+      <button type="submit" id="btn-add-task">Add Task</button>
+      <button type="button" id="btn-cancel-task">Cancel</button>
+    </form>
+  </div>
+
+  <hr>
+
+  <!-- Task List Section -->
+  <h2>Tasks</h2>
+  <div id="tasks-list">
+    <p>No tasks found.</p>
+  </div>
+
+  <script>
+    // Elements
+    const btnCreateTask = document.getElementById('btn-create-task');
+    const taskFormContainer = document.getElementById('task-form-container');
+    const taskForm = document.getElementById('task-form');
+    const btnCancelTask = document.getElementById('btn-cancel-task');
+    const viewColSelect = document.getElementById('view-collaborator-select');
+    const colAssignList = document.getElementById('collaborator-assign-list');
+    const tasksListDiv = document.getElementById('tasks-list');
+    const connectionStatus = document.getElementById('connection-status');
+
+    let collaborators = [];
+
+    // Toggle creation form (Create Button flow)
+    btnCreateTask.addEventListener('click', () => {
+      taskFormContainer.classList.remove('hidden');
+    });
+
+    btnCancelTask.addEventListener('click', () => {
+      taskFormContainer.classList.add('hidden');
+      taskForm.reset();
+    });
+
+    // Handle view change
+    viewColSelect.addEventListener('change', () => {
+      loadTasks();
+    });
+
+    // Load collaborators to populate assignment list and filter select
+    async function loadCollaborators() {
+      try {
+        const response = await fetch('/api/collaborators');
+        collaborators = await response.json();
+        
+        // Populate view selector
+        viewColSelect.innerHTML = '<option value="all">-- All Tasks --</option>';
+        collaborators.forEach(col => {
+          const option = document.createElement('option');
+          option.value = col.id;
+          option.textContent = col.name;
+          viewColSelect.appendChild(option);
+        });
+
+        // Populate form collaborator assignment list
+        colAssignList.innerHTML = '';
+        if (collaborators.length === 0) {
+          colAssignList.innerHTML = '<em>No collaborators available</em>';
+        } else {
+          collaborators.forEach(col => {
+            const div = document.createElement('div');
+            
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'collaborator';
+            radio.value = col.id;
+            radio.id = `col-assign-${col.id}`;
+            // Pre-select the first collaborator
+            if (colAssignList.children.length === 0) {
+              radio.checked = true;
+            }
+            
+            const label = document.createElement('label');
+            label.htmlFor = `col-assign-${col.id}`;
+            label.textContent = col.name;
+            label.style.display = 'inline';
+            label.style.marginLeft = '5px';
+            
+            div.appendChild(radio);
+            div.appendChild(label);
+            colAssignList.appendChild(div);
+          });
+        }
+      } catch (err) {
+        console.error('Error loading collaborators:', err);
+      }
+    }
+
+    // Load tasks based on the active collaborator view
+    async function loadTasks() {
+      try {
+        const activeColId = viewColSelect.value;
+        let url = '/api/tasks';
+        if (activeColId !== 'all') {
+          url += `?collaborator_id=${activeColId}`;
+        }
+        
+        const response = await fetch(url);
+        const tasks = await response.json();
+        
+        tasksListDiv.innerHTML = '';
+        if (tasks.length === 0) {
+          tasksListDiv.innerHTML = '<p>No tasks assigned for this view.</p>';
+          return;
+        }
+
+        tasks.forEach(task => {
+          const card = document.createElement('div');
+          card.className = 'task-card';
+          
+          const titleEl = document.createElement('strong');
+          titleEl.textContent = task.title;
+          
+          const descEl = document.createElement('p');
+          descEl.textContent = task.description || 'No description.';
+          descEl.style.margin = '5px 0';
+
+          const assignedEl = document.createElement('span');
+          assignedEl.innerHTML = `Assigned to: <strong>${task.collaborator_name || 'Unassigned'}</strong>`;
+          assignedEl.style.fontSize = '0.9em';
+          assignedEl.style.color = '#555';
+          
+          // Delete button
+          const btnDelete = document.createElement('button');
+          btnDelete.textContent = 'Delete';
+          btnDelete.style.marginLeft = '15px';
+          btnDelete.addEventListener('click', () => deleteTask(task.id));
+
+          card.appendChild(titleEl);
+          card.appendChild(btnDelete);
+          card.appendChild(descEl);
+          card.appendChild(assignedEl);
+          
+          tasksListDiv.appendChild(card);
+        });
+      } catch (err) {
+        console.error('Error loading tasks:', err);
+      }
+    }
+
+    // Add Task (submit form)
+    taskForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const title = document.getElementById('task-title').value.trim();
+      const description = document.getElementById('task-desc').value.trim();
+      
+      const selectedRadio = document.querySelector('input[name="collaborator"]:checked');
+      const collaborator_id = selectedRadio ? selectedRadio.value : null;
+
+      try {
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            collaborator_id
+          })
+        });
+
+        if (response.ok) {
+          taskFormContainer.classList.add('hidden');
+          taskForm.reset();
+          // Pre-select first radio again
+          const firstRadio = colAssignList.querySelector('input[type="radio"]');
+          if (firstRadio) firstRadio.checked = true;
+          // Refresh list locally (in case SSE hasn't fired yet)
+          loadTasks();
+        } else {
+          const errData = await response.json();
+          alert(`Error creating task: ${errData.error}`);
+        }
+      } catch (err) {
+        console.error('Error creating task:', err);
+      }
+    });
+
+    // Delete Task
+    async function deleteTask(taskId) {
+      if (!confirm('Are you sure you want to delete this task?')) return;
+      
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          loadTasks();
+        } else {
+          const errData = await response.json();
+          alert(`Error deleting task: ${errData.error}`);
+        }
+      } catch (err) {
+        console.error('Error deleting task:', err);
+      }
+    }
+
+    // Server-Sent Events for Real-Time Updates
+    function connectSSE() {
+      const eventSource = new EventSource('/api/events');
+
+      eventSource.onopen = () => {
+        connectionStatus.textContent = 'Connected (Real-time active)';
+        connectionStatus.style.color = 'green';
+      };
+
+      eventSource.onerror = (err) => {
+        console.error('SSE connection lost, retrying...', err);
+        connectionStatus.textContent = 'Disconnected (Reconnecting...)';
+        connectionStatus.style.color = 'red';
+      };
+
+      // Listen for the broadcasted updates
+      eventSource.addEventListener('update', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          console.log('Real-time event received:', data);
+          // Refresh our task list automatically!
+          loadTasks();
+        } catch (err) {
+          console.error('Error parsing SSE event data:', err);
+        }
+      });
+    }
+
+    // Initialize Page
+    async function init() {
+      await loadCollaborators();
+      await loadTasks();
+      connectSSE();
+    }
+
+    init();
+  </script>
+</body>
+</html>
