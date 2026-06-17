@@ -1,5 +1,8 @@
 # Scrum PROYECTO DINAMITA
 
+## STACK 
+### JavaScript, node 24.0, express, mysql2
+
 ## Sprints
 
 
@@ -26,7 +29,37 @@
         - Control de tiempos
 
 ### Daily meeting
-    N/A aun
+    16/06/26
+    ¿Qué hice ayer? (Avances del día anterior).
+    Luis    
+        - Analisis de estructura de la seguridad
+    Maria Jose
+        - Estructurar modulo de usuario
+    Jose Julian
+        - Analisis de estructura
+    Alejandro
+        - Analisis de estructura
+
+    ¿Qué haré hoy? (Plan de trabajo para el día en curso).
+    Luis
+        - Implementacion de codigo 
+    Maria Jose
+        - Pruebas
+    Jose Julian
+        - Inicio de programacion
+    Alejandro
+        - Inicio de programacion
+
+    ¿Tengo algún impedimento? (Bloqueos que retrasan el trabajo).
+    Luis
+        - N/A
+    Maria Jose
+        - N/A
+    Jose Julian
+        - N/A
+    Alejandro
+        - N/A
+
 
 ### Sprint review
     N/A aun
