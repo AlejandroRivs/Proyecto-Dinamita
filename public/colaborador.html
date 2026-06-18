@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablero Colaborador - Proyecto Dinamita</title>
+    <link rel="stylesheet" href="/estilos_css/styles.css">
+</head>
+<body style="padding: 20px;">
+    <header>
+        <div>
+            <h1 style="margin: 0; font-size: 24px; color: var(--accent-primary);">Mi Tablero de Tareas</h1>
+            <div id="collabName" style="color: var(--text-muted); margin-top: 5px;">Cargando...</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="card" style="margin: 0; padding: 10px 20px; display: flex; align-items: center; gap: 15px; border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
+                <span style="color: var(--success); font-weight: 600;">Puntos de Productividad:</span>
+                <span id="pointsBadge" style="font-size: 20px; font-weight: 700; color: var(--success);">0 PP</span>
+            </div>
+            <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </header>
+
+    <div id="lockAlert" class="card" style="display: none; background: rgba(239, 68, 68, 0.1); border-color: var(--danger); color: var(--danger); font-weight: 500;">
+        El administrador ha bloqueado temporalmente todos los cronómetros del sistema.
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="kanban-board">
+        <div class="kanban-col">
+            <h3 style="margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">PENDIENTES</h3>
+            <div id="colPending"></div>
+        </div>
+        
+        <div class="kanban-col">
+            <h3 style="margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid var(--border-color); color: var(--accent-primary);">EN PROCESO / PAUSADAS</h3>
+            <div id="colActive"></div>
+        </div>
+
+        <div class="kanban-col">
+            <h3 style="margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid var(--border-color); color: var(--success);">COMPLETADAS</h3>
+            <div id="colCompleted"></div>
+        </div>
+    </div>
+
+    <!-- Tareas Extras -->
+    <div class="card" style="margin-top: 30px;">
+        <h3 style="margin-top: 0; color: #a855f7;">Bolsa de Tareas Extras</h3>
+        <div id="extrasLockedMsg" style="color: var(--warning); font-weight: 500;">
+            Completa el 100% de tus tareas principales pendientes para poder autoasignarte y realizar tareas extras (bonos de puntos).
+        </div>
+        <div id="extrasUnlocked" style="display: none;">
+            <p style="color: var(--success); font-weight: 500; margin-bottom: 15px;">Has completado tus tareas principales. Puedes seleccionar una tarea extra voluntaria de la bolsa:</p>
+            <div id="availableExtrasList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                <!-- Tareas extras disponibles -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        async function checkAuth() {
+            const res = await fetch('/api/auth/session');
+            const data = await res.json();
+            if (!data.loggedIn || data.user.role !== 'colaborador') {
+                window.location.href = '/login.html';
+            } else {
+                currentUser = data.user;
+                document.getElementById('collabName').textContent = `Colaborador: ${data.user.username}`;
+                document.getElementById('pointsBadge').textContent = `${data.user.points || 0} PP`;
+                loadDashboard();
+            }
+        }
+
+        async function loadDashboard() {
+            const res = await fetch('/api/tasks');
+            if (res.ok) {
+                const tasks = await res.json();
+                
+                const colPending = document.getElementById('colPending');
+                const colActive = document.getElementById('colActive');
+                const colCompleted = document.getElementById('colCompleted');
+
+                colPending.innerHTML = '';
+                colActive.innerHTML = '';
+                colCompleted.innerHTML = '';
+
+                let mainTasksCount = 0;
+                let completedMainCount = 0;
+                let globalLocked = false;
+
+                tasks.forEach(t => {
+                    if (t.global_locked) globalLocked = true;
+
+                    if (!t.is_extra) {
+                        mainTasksCount++;
+                        if (t.status === 'Completed') {
+                            completedMainCount++;
+                        }
+                    }
+
+                    const card = createTaskCard(t);
+
+                    if (t.status === 'Pending') {
+                        colPending.appendChild(card);
+                    } else if (t.status === 'In Progress' || t.status === 'Paused') {
+                        colActive.appendChild(card);
+                    } else {
+                        colCompleted.appendChild(card);
+                    }
+                });
+
+                document.getElementById('lockAlert').style.display = globalLocked ? 'block' : 'none';
+
+                // Si tiene tareas asignadas y completó todas las principales
+                const isExtraUnlocked = mainTasksCount > 0 && completedMainCount === mainTasksCount;
+
+                if (isExtraUnlocked) {
+                    document.getElementById('extrasLockedMsg').style.display = 'none';
+                    document.getElementById('extrasUnlocked').style.display = 'block';
+                    loadAvailableExtras();
+                } else {
+                    document.getElementById('extrasLockedMsg').style.display = 'block';
+                    document.getElementById('extrasUnlocked').style.display = 'none';
+                }
+            }
+        }
+
+        function createTaskCard(t) {
+            const div = document.createElement('div');
+            div.className = `task-card ${t.is_extra ? 'extra' : ''}`;
+
+            let actionsHTML = '';
+            if (t.status === 'Pending') {
+                actionsHTML = `<button class="btn btn-success" onclick="startTask(${t.id})">Iniciar</button>`;
+            } else if (t.status === 'In Progress') {
+                actionsHTML = `
+                    <button class="btn btn-warning" style="margin-right: 5px;" onclick="pauseTask(${t.id})">Pausar</button>
+                    <button class="btn btn-danger" onclick="finalizeTask(${t.id})">Finalizar</button>
+                `;
+            } else if (t.status === 'Paused') {
+                actionsHTML = `
+                    <button class="btn btn-success" style="margin-right: 5px;" onclick="startTask(${t.id})">Reanudar</button>
+                    <button class="btn btn-danger" onclick="finalizeTask(${t.id})">Finalizar</button>
+                `;
+            } else {
+                actionsHTML = `<span style="color: var(--success); font-weight: 600;">Completado (+${t.points_awarded} PP)</span>`;
+            }
+
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-weight:600; font-size:16px;">${t.title}</div>
+                    <span class="badge" style="background: rgba(99,102,241,0.1); color: var(--accent-primary);">${t.complexity}</span>
+                </div>
+                <p style="color: var(--text-muted); font-size: 13px; margin: 10px 0;">${t.description || ''}</p>
+                <div style="font-size:12px; color: var(--text-muted); margin-bottom:12px;">Límite asignado: ${t.time_limit_minutes} min</div>
+                <div style="font-family:monospace; font-size:16px; font-weight:700; margin-bottom:12px;">
+                    Tiempo: ${t.formatted_duration}
+                </div>
+                <div>${actionsHTML}</div>
+            `;
+            return div;
+        }
+
+        async function loadAvailableExtras() {
+            const res = await fetch('/api/tasks?unassigned_extras=true');
+            if (res.ok) {
+                const extras = await res.json();
+                const container = document.getElementById('availableExtrasList');
+                container.innerHTML = '';
+
+                if (extras.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted);">No hay tareas extras disponibles en la bolsa común en este momento.</p>';
+                    return;
+                }
+
+                extras.forEach(t => {
+                    container.innerHTML += `
+                        <div class="task-card extra" style="margin-bottom: 0;">
+                            <div style="font-weight:600;">${t.title}</div>
+                            <p style="font-size:12px; color:var(--text-muted); margin: 5px 0;">${t.description || ''}</p>
+                            <div style="font-size:12px; font-weight:500; color: #a855f7; margin-bottom:10px;">Complejidad: ${t.complexity}</div>
+                            <button class="btn btn-sm" style="background:#a855f7; width:100%;" onclick="autoAssign(${t.id})">Autoasignar</button>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        async function autoAssign(id) {
+            const res = await fetch(`/api/tasks/${id}/assign`, { method: 'POST' });
+            if (res.ok) {
+                loadDashboard();
+            } else {
+                const data = await res.json();
+                alert(data.error);
+            }
+        }
+
+        async function startTask(id) {
+            const res = await fetch(`/api/tasks/${id}/start`, { method: 'POST' });
+            if (res.ok) {
+                loadDashboard();
+            } else {
+                const data = await res.json();
+                alert(data.error);
+            }
+        }
+
+        async function pauseTask(id) {
+            const res = await fetch(`/api/tasks/${id}/pause`, { method: 'POST' });
+            if (res.ok) {
+                loadDashboard();
+            } else {
+                const data = await res.json();
+                alert(data.error);
+            }
+        }
+
+        async function finalizeTask(id) {
+            const res = await fetch(`/api/tasks/${id}/finalize`, { method: 'POST' });
+            if (res.ok) {
+                // Actualizar puntos de la barra superior refrescando la sesión
+                const sessionRes = await fetch('/api/auth/session');
+                const sessionData = await sessionRes.json();
+                document.getElementById('pointsBadge').textContent = `${sessionData.user.points || 0} PP`;
+                loadDashboard();
+            } else {
+                const data = await res.json();
+                alert(data.error);
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+
+        setInterval(loadDashboard, 3000);
+        checkAuth();
+    </script>
+</body>
+</html>

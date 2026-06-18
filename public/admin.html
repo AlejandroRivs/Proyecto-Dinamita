@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrador - Proyecto Dinamita</title>
+    <link rel="stylesheet" href="/estilos_css/styles.css">
+</head>
+<body style="padding: 20px;">
+    <header>
+        <div>
+            <h1 style="margin: 0; font-size: 24px; color: var(--accent-primary);">Panel de Administración (Control de Tiempos)</h1>
+            <div id="adminName" style="color: var(--text-muted); margin-top: 5px;">Cargando...</div>
+        </div>
+        <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
+    </header>
+
+    <div style="display: flex; gap: 30px;">
+        <!-- Crear Tarea -->
+        <div class="card" style="flex: 1; max-width: 400px; height: fit-content;">
+            <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Crear Nueva Tarea</h3>
+            <form id="createTaskForm">
+                <div>
+                    <label>Título</label>
+                    <input type="text" id="title" required placeholder="Ej: Redacción del informe técnico">
+                </div>
+                <div>
+                    <label>Descripción</label>
+                    <textarea id="description" rows="3" placeholder="Detalles de la tarea..."></textarea>
+                </div>
+                <div>
+                    <label>Asignar a Colaborador</label>
+                    <select id="assignedTo">
+                        <option value="">-- Bolsa Común (Sin Asignar) --</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Límite de Tiempo (Minutos)</label>
+                    <input type="number" id="timeLimit" value="30" min="1">
+                </div>
+                <div>
+                    <label>Complejidad (Calificación de Puntos)</label>
+                    <select id="complexity" disabled>
+                        <option value="Simple">Simple (5 PP)</option>
+                        <option value="Media" selected>Media (15 PP)</option>
+                        <option value="Compleja">Compleja (30 PP)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="isExtra" style="width: auto; margin: 0;"> Tarea Extra (Bono voluntario)
+                    </label>
+                </div>
+                <button type="submit" class="btn" style="width: 100%;">Crear y Publicar</button>
+            </form>
+        </div>
+
+        <!-- Monitoreo Global -->
+        <div style="flex: 2;">
+            <div class="card" style="display: flex; justify-content: space-between; align-items: center; background: rgba(99, 102, 241, 0.05); border-color: rgba(99, 102, 241, 0.2);">
+                <div>
+                    <div style="font-weight: 600; font-size: 16px;">Control Global de Cronómetros</div>
+                    <div id="lockText" style="color: var(--success); font-size: 14px; margin-top: 4px;">Estado: Activo y Desbloqueado</div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-danger" onclick="toggleLock(true)">CONGELAR TIEMPOS</button>
+                    <button class="btn btn-success" onclick="toggleLock(false)">REANUDAR TODOS</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">Monitoreo de Productividad</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="loadTasks()">Refrescar</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tarea</th>
+                            <th>Asignado</th>
+                            <th>Tipo</th>
+                            <th>Complejidad</th>
+                            <th>Tiempo Límite</th>
+                            <th>Duración Acumulada</th>
+                            <th>PP</th>
+                            <th>Estado</th>
+                            <th>Control de Calidad</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksTableBody">
+                        <!-- Carga dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkAuth() {
+            const res = await fetch('/api/auth/session');
+            const data = await res.json();
+            if (!data.loggedIn || data.user.role !== 'admin') {
+                window.location.href = '/login.html';
+            } else {
+                document.getElementById('adminName').textContent = `Administrador activo: ${data.user.username}`;
+                loadCollaborators();
+                loadTasks();
+            }
+        }
+
+        async function loadCollaborators() {
+            const res = await fetch('/api/tasks/collaborators');
+            if (res.ok) {
+                const collaborators = await res.json();
+                const select = document.getElementById('assignedTo');
+                select.innerHTML = '<option value="">-- Bolsa Común (Sin Asignar) --</option>';
+                collaborators.forEach(c => {
+                    select.innerHTML += `<option value="${c.id}">${c.username}</option>`;
+                });
+            }
+        }
+
+        async function loadTasks() {
+            const res = await fetch('/api/tasks');
+            if (res.ok) {
+                const tasks = await res.json();
+                const tbody = document.getElementById('tasksTableBody');
+                tbody.innerHTML = '';
+                
+                let isAnyLocked = false;
+
+                tasks.forEach(t => {
+                    if (t.global_locked) isAnyLocked = true;
+
+                    // Botón de rechazo por calidad
+                    let qualityControlAction = '-';
+                    if (t.status === 'Completed') {
+                        qualityControlAction = `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="rejectTask(${t.id})">Rechazar (Revertir PP)</button>`;
+                    }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>
+                                <div><strong>${t.title}</strong></div>
+                                <div style="font-size:12px; color: var(--text-muted);">${t.description || ''}</div>
+                            </td>
+                            <td>${t.collaborator_name || '<em style="color:var(--text-muted);">Sin asignar</em>'}</td>
+                            <td>${t.is_extra ? '<span class="badge" style="background:#f3e8ff; color:#a855f7;">Extra</span>' : '<span class="badge" style="background:#dbeafe; color:#2563eb;">Principal</span>'}</td>
+                            <td>${t.complexity}</td>
+                            <td>${t.time_limit_minutes} min</td>
+                            <td style="font-family:monospace; font-weight:600;">${t.formatted_duration}</td>
+                            <td style="color:var(--success); font-weight:600;">+${t.points_awarded !== undefined && t.points_awarded !== null ? t.points_awarded : 0} PP</td>
+                            <td>
+                                <span class="badge badge-${t.status.toLowerCase().replace(' ', '')}">
+                                    ${t.status}
+                                </span>
+                            </td>
+                            <td>${qualityControlAction}</td>
+                        </tr>
+                    `;
+                });
+
+                const lockText = document.getElementById('lockText');
+                if (isAnyLocked) {
+                    lockText.textContent = 'Estado: CONGELADO GLOBALMENTE';
+                    lockText.style.color = 'var(--danger)';
+                } else {
+                    lockText.textContent = 'Estado: Activo y Desbloqueado';
+                    lockText.style.color = 'var(--success)';
+                }
+            }
+        }
+
+        async function toggleLock(lock) {
+            await fetch('/api/tasks/global-lock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lock })
+            });
+            loadTasks();
+        }
+
+        async function rejectTask(id) {
+            if (confirm('¿Estás seguro de rechazar el entregable? Se restablecerá a pendiente y se le restarán los puntos correspondientes al colaborador.')) {
+                const res = await fetch(`/api/tasks/${id}/reject`, { method: 'POST' });
+                const data = await res.json();
+                alert(data.message || data.error);
+                loadTasks();
+            }
+        }
+
+        document.getElementById('createTaskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const assigned_to = document.getElementById('assignedTo').value;
+            const time_limit_minutes = document.getElementById('timeLimit').value;
+            const complexity = document.getElementById('complexity').value;
+            const is_extra = document.getElementById('isExtra').checked;
+
+            const res = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description, assigned_to, time_limit_minutes, complexity, is_extra })
+            });
+
+            if (res.ok) {
+                document.getElementById('createTaskForm').reset();
+                document.getElementById('complexity').disabled = true;
+                loadTasks();
+            } else {
+                const data = await res.json();
+                alert('Error: ' + data.error);
+            }
+        });
+
+        async function logout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.href = '/login.html';
+        }
+
+        // Habilitar/Deshabilitar complejidad en base a Tarea Extra
+        document.getElementById('isExtra').addEventListener('change', (e) => {
+            document.getElementById('complexity').disabled = !e.target.checked;
+        });
+
+        // Auto refresco cada 4 segundos
+        setInterval(loadTasks, 4000);
+        checkAuth();
+    </script>
+</body>
+</html>
