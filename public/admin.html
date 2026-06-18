@@ -3,230 +3,363 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Administrador - Proyecto Dinamita</title>
-    <link rel="stylesheet" href="/estilos_css/styles.css">
+    <title>TimeControl Pro - Dashboard Ejecutivo</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --tc-primary: #64242F;
+            --tc-secondary: #B44446;
+            --tc-tertiary: #FC8F8F;
+            --tc-neutral: #fef8f7;
+            --tc-text: #1d1b1b;
+        }
+        body {
+            background-color: var(--tc-neutral);
+            font-family: 'Hanken Grotesk', sans-serif;
+            color: var(--tc-text);
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        
+        /* Sidebar Styling */
+        .sidebar {
+            width: 250px;
+            background-color: #fff;
+            border-right: 1px solid rgba(0,0,0,0.05);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 1000;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .topbar {
+            margin-left: 250px;
+            height: 64px;
+            background-color: #fff;
+            box-shadow: 0px 4px 20px rgba(100,36,47,0.05);
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 2rem;
+        }
+        .main-content {
+            margin-left: 250px;
+            margin-top: 64px;
+            padding: 2rem;
+            min-height: calc(100vh - 64px);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .topbar { margin-left: 0; }
+            .main-content { margin-left: 0; }
+        }
+
+        .nav-item-tc {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #534344;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .nav-item-tc:hover {
+            background-color: #f3eceb;
+            color: var(--tc-text);
+        }
+        .nav-item-tc.active {
+            background-color: var(--tc-primary);
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        /* Cards */
+        .card-tc {
+            background-color: #fff;
+            border-radius: 1rem;
+            border: none;
+            box-shadow: 0px 4px 20px rgba(100,36,47,0.05);
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+        .card-tc:hover {
+            background-color: #f9f2f1;
+        }
+        
+        .btn-tc-primary {
+            background-color: var(--tc-primary);
+            color: #fff;
+            border: none;
+        }
+        .btn-tc-primary:hover {
+            background-color: #4a1922;
+            color: #fff;
+        }
+
+        .avatar-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+        
+        .status-badge {
+            font-size: 0.65rem;
+            font-weight: bold;
+            padding: 0.2rem 0.6rem;
+            border-radius: 50rem;
+            text-transform: uppercase;
+        }
+
+    </style>
 </head>
-<body style="padding: 20px;">
-    <header>
-        <div>
-            <h1 style="margin: 0; font-size: 24px; color: var(--accent-primary);">Panel de Administración (Control de Tiempos)</h1>
-            <div id="adminName" style="color: var(--text-muted); margin-top: 5px;">Cargando...</div>
-        </div>
-        <button class="btn btn-secondary" onclick="logout()">Cerrar Sesión</button>
-    </header>
+<body>
 
-    <div style="display: flex; gap: 30px;">
-        <!-- Crear Tarea -->
-        <div class="card" style="flex: 1; max-width: 400px; height: fit-content;">
-            <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Crear Nueva Tarea</h3>
-            <form id="createTaskForm">
-                <div>
-                    <label>Título</label>
-                    <input type="text" id="title" required placeholder="Ej: Redacción del informe técnico">
-                </div>
-                <div>
-                    <label>Descripción</label>
-                    <textarea id="description" rows="3" placeholder="Detalles de la tarea..."></textarea>
-                </div>
-                <div>
-                    <label>Asignar a Colaborador</label>
-                    <select id="assignedTo">
-                        <option value="">-- Bolsa Común (Sin Asignar) --</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Límite de Tiempo (Minutos)</label>
-                    <input type="number" id="timeLimit" value="30" min="1">
-                </div>
-                <div>
-                    <label>Complejidad (Calificación de Puntos)</label>
-                    <select id="complexity" disabled>
-                        <option value="Simple">Simple (5 PP)</option>
-                        <option value="Media" selected>Media (15 PP)</option>
-                        <option value="Compleja">Compleja (30 PP)</option>
-                    </select>
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="isExtra" style="width: auto; margin: 0;"> Tarea Extra (Bono voluntario)
-                    </label>
-                </div>
-                <button type="submit" class="btn" style="width: 100%;">Crear y Publicar</button>
-            </form>
-        </div>
+<!-- Sidebar -->
+<aside class="sidebar d-none d-md-flex">
+    <div class="mb-4">
+        <h4 class="fw-bolder text-tc-primary m-0" style="color: var(--tc-primary);">TimeControl Pro</h4>
+        <small class="text-muted">Panel Ejecutivo</small>
+    </div>
+    
+    <nav class="flex-grow-1 d-flex flex-column gap-1">
+        <a href="/admin.html" class="nav-item-tc active">
+            <span class="material-symbols-outlined">dashboard</span> Inicio
+        </a>
+        <a href="/admin_tareas.html" class="nav-item-tc">
+            <span class="material-symbols-outlined">assignment</span> Tareas
+        </a>
+        <a href="/admin_colaboradores.html" class="nav-item-tc">
+            <span class="material-symbols-outlined">group</span> Colaboradores
+        </a>
+        <a href="/admin_config.html" class="nav-item-tc">
+            <span class="material-symbols-outlined">settings</span> Configuración
+        </a>
+    </nav>
+    
+    <div class="mt-auto border-top pt-3 d-flex flex-column gap-1">
+        <a href="#" class="nav-item-tc" id="logoutBtn">
+            <span class="material-symbols-outlined">logout</span> Salir
+        </a>
+    </div>
+</aside>
 
-        <!-- Monitoreo Global -->
-        <div style="flex: 2;">
-            <div class="card" style="display: flex; justify-content: space-between; align-items: center; background: rgba(99, 102, 241, 0.05); border-color: rgba(99, 102, 241, 0.2);">
-                <div>
-                    <div style="font-weight: 600; font-size: 16px;">Control Global de Cronómetros</div>
-                    <div id="lockText" style="color: var(--success); font-size: 14px; margin-top: 4px;">Estado: Activo y Desbloqueado</div>
+<!-- Topbar -->
+<header class="topbar">
+    <div class="d-flex align-items-center gap-3 border-start ps-3">
+        <div class="text-end d-none d-sm-block">
+            <div class="fw-bold m-0 lh-1" id="admin-name">Admin Pro</div>
+            <small class="text-muted" style="font-size: 0.7rem;">Gestión Ejecutiva</small>
+        </div>
+        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm border border-2 border-danger" style="width: 40px; height: 40px; background-color: var(--tc-primary);" id="admin-avatar">
+            A
+        </div>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="container-fluid p-0">
+        <!-- Hero Section -->
+        <section class="mb-5 d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-4">
+            <div>
+                <h2 class="fw-bold mb-2" style="color: var(--tc-primary);" id="welcome-message">¡Hola, Administrador!</h2>
+                <p class="text-muted m-0">Este es el resumen ejecutivo del desempeño de tu equipo para hoy.</p>
+            </div>
+            
+            <div class="card-tc py-2 px-3 m-0 d-flex align-items-center gap-3">
+                <div class="text-end">
+                    <div class="text-uppercase fw-bold" style="color: var(--tc-primary); font-size: 0.65rem; letter-spacing: 1px;">Hora Local</div>
+                    <div class="fs-4 fw-bold" style="color: var(--tc-primary);" id="live-clock">00:00:00</div>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-danger" onclick="toggleLock(true)">CONGELAR TIEMPOS</button>
-                    <button class="btn btn-success" onclick="toggleLock(false)">REANUDAR TODOS</button>
+                <div class="rounded p-2" style="background-color: var(--tc-primary); color: white;">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">schedule</span>
                 </div>
             </div>
+        </section>
 
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="margin: 0;">Monitoreo de Productividad</h3>
-                    <button class="btn btn-secondary btn-sm" onclick="loadTasks()">Refrescar</button>
+        <!-- KPI Row -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6 col-lg-3">
+                <div class="card-tc h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="rounded p-2" style="background-color: rgba(180,68,70,0.1); color: var(--tc-secondary);">
+                            <span class="material-symbols-outlined">task</span>
+                        </div>
+                    </div>
+                    <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Total de Tareas</h6>
+                    <h3 class="fw-bold" style="color: var(--tc-primary);" id="total-tasks-kpi">0</h3>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Tarea</th>
-                            <th>Asignado</th>
-                            <th>Tipo</th>
-                            <th>Complejidad</th>
-                            <th>Tiempo Límite</th>
-                            <th>Duración Acumulada</th>
-                            <th>PP</th>
-                            <th>Estado</th>
-                            <th>Control de Calidad</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tasksTableBody">
-                        <!-- Carga dinámica -->
-                    </tbody>
-                </table>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card-tc h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="rounded p-2" style="background-color: rgba(100,36,47,0.1); color: var(--tc-primary);">
+                            <span class="material-symbols-outlined">analytics</span>
+                        </div>
+                    </div>
+                    <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Tareas Completadas</h6>
+                    <h3 class="fw-bold" style="color: var(--tc-primary);" id="completed-tasks-kpi">0</h3>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card-tc h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="rounded p-2" style="background-color: rgba(252,143,143,0.2); color: var(--tc-tertiary);">
+                            <span class="material-symbols-outlined">military_tech</span>
+                        </div>
+                    </div>
+                    <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Total Incentivos</h6>
+                    <h3 class="fw-bold" style="color: var(--tc-primary);"><span id="points-kpi">0</span> <small class="fs-6 text-muted fw-normal">pts</small></h3>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card-tc h-100 bg-primary text-white" style="background-color: var(--tc-primary) !important;">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="rounded p-2 bg-white bg-opacity-10">
+                            <span class="material-symbols-outlined" style="color: var(--tc-tertiary);">warning</span>
+                        </div>
+                    </div>
+                    <h6 class="text-white-50 text-uppercase mb-1" style="font-size: 0.75rem;">Alertas</h6>
+                    <h3 class="fw-bold mb-3">Control</h3>
+                    <div class="border-top border-white border-opacity-10 pt-3 d-flex justify-content-between align-items-center">
+                        <small class="text-decoration-underline" style="cursor: pointer;" id="toggleGlobalLockBtn">Bloqueo Global: INACTIVO</small>
+                        <span class="material-symbols-outlined fs-6">chevron_right</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="row g-4">
+            <!-- Tareas/Colaboradores Table -->
+            <div class="col-xl-8">
+                <div class="card-tc p-0 overflow-hidden h-100">
+                    <div class="p-4 border-bottom d-flex justify-content-between align-items-center bg-white">
+                        <div>
+                            <h5 class="fw-bold m-0" style="color: var(--tc-primary);">Gestión de Tareas y Colaboradores</h5>
+                            <small class="text-muted">Listado detallado de actividad.</small>
+                        </div>
+                        <button class="btn btn-tc-primary btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                            <span class="material-symbols-outlined" style="font-size: 1rem;">add</span> Tarea
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead style="background-color: #f9f2f1;">
+                                <tr>
+                                    <th class="py-3 px-4 text-muted small text-uppercase" style="font-family: 'JetBrains Mono', monospace;">Tarea</th>
+                                    <th class="py-3 px-4 text-muted small text-uppercase" style="font-family: 'JetBrains Mono', monospace;">Asignado A</th>
+                                    <th class="py-3 px-4 text-muted small text-uppercase" style="font-family: 'JetBrains Mono', monospace;">Estado</th>
+                                    <th class="py-3 px-4 text-muted small text-uppercase" style="font-family: 'JetBrains Mono', monospace;">Puntos</th>
+                                    <th class="py-3 px-4 text-muted small text-uppercase text-center" style="font-family: 'JetBrains Mono', monospace;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-tasks-body">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4">Cargando datos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Side Widgets -->
+            <div class="col-xl-4">
+                <div class="card-tc mb-4 bg-white position-relative overflow-hidden group">
+                    <div class="position-relative z-1">
+                        <h6 class="text-muted text-uppercase mb-4" style="font-size: 0.75rem;">Meta Mensual de Equipo</h6>
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <span class="fs-3 fw-bold" style="color: var(--tc-primary);">85%</span>
+                            <div class="progress flex-grow-1" style="height: 10px; background-color: #f3eceb;">
+                                <div class="progress-bar" role="progressbar" style="width: 85%; background: linear-gradient(90deg, var(--tc-primary) 0%, var(--tc-secondary) 100%);" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        <small class="text-muted">Faltan puntos para el próximo bono corporativo.</small>
+                    </div>
+                    <span class="material-symbols-outlined position-absolute" style="font-size: 120px; right: -20px; bottom: -20px; opacity: 0.05; pointer-events: none;">military_tech</span>
+                </div>
             </div>
         </div>
     </div>
+</main>
 
-    <script>
-        async function checkAuth() {
-            const res = await fetch('/api/auth/session');
-            const data = await res.json();
-            if (!data.loggedIn || data.user.role !== 'admin') {
-                window.location.href = '/login.html';
-            } else {
-                document.getElementById('adminName').textContent = `Administrador activo: ${data.user.username}`;
-                loadCollaborators();
-                loadTasks();
-            }
-        }
+<!-- Create Task Modal -->
+<div class="modal fade" id="createTaskModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 1rem; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" style="color: var(--tc-primary);">Nueva Tarea</h5>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="createTaskForm">
+            <div id="taskError" class="alert alert-danger d-none small"></div>
+            <div class="mb-3">
+                <label class="form-label text-muted small fw-bold">TÍTULO</label>
+                <input type="text" class="form-control" id="taskTitle" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted small fw-bold">DESCRIPCIÓN</label>
+                <textarea class="form-control" id="taskDesc" rows="3" required></textarea>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label text-muted small fw-bold">ASIGNAR A</label>
+                    <select class="form-select" id="taskAssignee" required>
+                        <option value="">Seleccione...</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label text-muted small fw-bold">COMPLEJIDAD (1-3)</label>
+                    <input type="number" class="form-control" id="taskComplexity" min="1" max="3" value="1" required>
+                </div>
+            </div>
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-tc-primary py-2">Crear Tarea</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
-        async function loadCollaborators() {
-            const res = await fetch('/api/tasks/collaborators');
-            if (res.ok) {
-                const collaborators = await res.json();
-                const select = document.getElementById('assignedTo');
-                select.innerHTML = '<option value="">-- Bolsa Común (Sin Asignar) --</option>';
-                collaborators.forEach(c => {
-                    select.innerHTML += `<option value="${c.id}">${c.username}</option>`;
-                });
-            }
-        }
-
-        async function loadTasks() {
-            const res = await fetch('/api/tasks');
-            if (res.ok) {
-                const tasks = await res.json();
-                const tbody = document.getElementById('tasksTableBody');
-                tbody.innerHTML = '';
-                
-                let isAnyLocked = false;
-
-                tasks.forEach(t => {
-                    if (t.global_locked) isAnyLocked = true;
-
-                    // Botón de rechazo por calidad
-                    let qualityControlAction = '-';
-                    if (t.status === 'Completed') {
-                        qualityControlAction = `<button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="rejectTask(${t.id})">Rechazar (Revertir PP)</button>`;
-                    }
-
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>
-                                <div><strong>${t.title}</strong></div>
-                                <div style="font-size:12px; color: var(--text-muted);">${t.description || ''}</div>
-                            </td>
-                            <td>${t.collaborator_name || '<em style="color:var(--text-muted);">Sin asignar</em>'}</td>
-                            <td>${t.is_extra ? '<span class="badge" style="background:#f3e8ff; color:#a855f7;">Extra</span>' : '<span class="badge" style="background:#dbeafe; color:#2563eb;">Principal</span>'}</td>
-                            <td>${t.complexity}</td>
-                            <td>${t.time_limit_minutes} min</td>
-                            <td style="font-family:monospace; font-weight:600;">${t.formatted_duration}</td>
-                            <td style="color:var(--success); font-weight:600;">+${t.points_awarded !== undefined && t.points_awarded !== null ? t.points_awarded : 0} PP</td>
-                            <td>
-                                <span class="badge badge-${t.status.toLowerCase().replace(' ', '')}">
-                                    ${t.status}
-                                </span>
-                            </td>
-                            <td>${qualityControlAction}</td>
-                        </tr>
-                    `;
-                });
-
-                const lockText = document.getElementById('lockText');
-                if (isAnyLocked) {
-                    lockText.textContent = 'Estado: CONGELADO GLOBALMENTE';
-                    lockText.style.color = 'var(--danger)';
-                } else {
-                    lockText.textContent = 'Estado: Activo y Desbloqueado';
-                    lockText.style.color = 'var(--success)';
-                }
-            }
-        }
-
-        async function toggleLock(lock) {
-            await fetch('/api/tasks/global-lock', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lock })
-            });
-            loadTasks();
-        }
-
-        async function rejectTask(id) {
-            if (confirm('¿Estás seguro de rechazar el entregable? Se restablecerá a pendiente y se le restarán los puntos correspondientes al colaborador.')) {
-                const res = await fetch(`/api/tasks/${id}/reject`, { method: 'POST' });
-                const data = await res.json();
-                alert(data.message || data.error);
-                loadTasks();
-            }
-        }
-
-        document.getElementById('createTaskForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const title = document.getElementById('title').value;
-            const description = document.getElementById('description').value;
-            const assigned_to = document.getElementById('assignedTo').value;
-            const time_limit_minutes = document.getElementById('timeLimit').value;
-            const complexity = document.getElementById('complexity').value;
-            const is_extra = document.getElementById('isExtra').checked;
-
-            const res = await fetch('/api/tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, description, assigned_to, time_limit_minutes, complexity, is_extra })
-            });
-
-            if (res.ok) {
-                document.getElementById('createTaskForm').reset();
-                document.getElementById('complexity').disabled = true;
-                loadTasks();
-            } else {
-                const data = await res.json();
-                alert('Error: ' + data.error);
-            }
-        });
-
-        async function logout() {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            window.location.href = '/login.html';
-        }
-
-        // Habilitar/Deshabilitar complejidad en base a Tarea Extra
-        document.getElementById('isExtra').addEventListener('change', (e) => {
-            document.getElementById('complexity').disabled = !e.target.checked;
-        });
-
-        // Auto refresco cada 4 segundos
-        setInterval(loadTasks, 4000);
-        checkAuth();
-    </script>
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Logic for Admin -->
+<script src="/js/admin.js"></script>
 </body>
 </html>

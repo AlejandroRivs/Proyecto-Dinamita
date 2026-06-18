@@ -1,180 +1,23 @@
-const db = require('../config/db');
-const jwt = require('jsonwebtoken');
-const { hashPassword, comparePassword } = require('../utils/passwordHelper');
-
-const register = async (req, res) => {
-    const { username, email, password } = req.body;
-
-    try {
-        // Verificar si el usuario ya existe
-        const [existingUsers] = await db.execute('SELECT id FROM users WHERE email = ?', [email]);
-        if (existingUsers.length > 0) {
-            return res.status(400).json({ message: 'El usuario ya existe' });
-        }
-
-        // Hashear la contraseña
-        const hashedPassword = await hashPassword(password);
-
-        // Insertar en la base de datos (con consultas preparadas)
-        const [result] = await db.execute(
-            'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-            [username, email, hashedPassword]
-        );
-
-        res.status(201).json({ message: 'Usuario registrado exitosamente', userId: result.insertId });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error interno del servidor' });
-    }
-};
-
-const login = async (req, res) => {
-    const { email, password } = req.body;
-
-    try {
-        // Buscar el usuario por email
-        const [users] = await db.execute('SELECT id, username, password, role FROM users WHERE email = ?', [email]);
-        if (users.length === 0) {
-            return res.status(401).json({ message: 'Credenciales inválidas' });
-        }
-
-        const user = users[0];
-
-        // Comparar contraseña
-        const isMatch = await comparePassword(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Credenciales inválidas' });
-        }
-
-        // Generar JWT
-        const payload = {
-            id: user.id,
-            username: user.username,
-            role: user.role || 'user'
-        };
-
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
-
-        res.json({
-            message: 'Login exitoso',
-            token
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error interno del servidor' });
-    }
-};
-
-module.exports = {
-    register,
-    login
-};
-// ============================================================
-// controllers/authController.js - Maneja login, logout, sesión y permisos
-// Recibe la petición, valida credenciales y gestiona la sesión
-// ============================================================
 const bcrypt = require('bcrypt');
-const UsuarioModel = require('../models/usuarioModel');
-
-const AuthController = {
-  // POST /auth/login - Iniciar sesión
-  async login(req, res) {
-    const { email, contrasena } = req.body;
-
-    // Validar que se enviaron ambos campos
-    if (!email || !contrasena) {
-      return res.status(400).json({ exito: false, mensaje: 'El correo y la contraseña son obligatorios' });
-    }
-
-    try {
-      // Buscar el usuario en la base de datos por su email
-      const usuarioEncontrado = await UsuarioModel.buscarPorEmail(email.trim().toLowerCase());
-
-      if (!usuarioEncontrado) {
-        // No revelar si el email existe o no (buena práctica de seguridad)
-        return res.status(401).json({ exito: false, mensaje: 'Credenciales incorrectas' });
-      }
-
-      // Comparar la contraseña ingresada con el hash guardado en la BD
-      const contrasenaCorrecta = await bcrypt.compare(contrasena, usuarioEncontrado.contrasena);
-
-      if (!contrasenaCorrecta) {
-        return res.status(401).json({ exito: false, mensaje: 'Credenciales incorrectas' });
-      }
-
-      // Guardar los datos del usuario en la sesión (sin la contraseña)
-      req.session.usuario = {
-        id: usuarioEncontrado.id,
-        nombre: usuarioEncontrado.nombre,
-        email: usuarioEncontrado.email,
-        rol: usuarioEncontrado.rol
-      };
-
-      // Responder con los datos del usuario y su rol para redirigir en el cliente
-      return res.json({ exito: true, mensaje: `Bienvenido, ${usuarioEncontrado.nombre}`, usuario: req.session.usuario });
-
-    } catch (error) {
-      console.error('Error en login:', error);
-      return res.status(500).json({ exito: false, mensaje: 'Error interno del servidor' });
-    }
-  },
-
-  // POST /auth/logout - Cerrar sesión
-  logout(req, res) {
-    // Destruir la sesión en el servidor
-    req.session.destroy((error) => {
-      if (error) {
-        return res.status(500).json({ exito: false, mensaje: 'No se pudo cerrar la sesión' });
-      }
-      // Sesión destruida correctamente
-      res.json({ exito: true, mensaje: 'Sesión cerrada correctamente' });
-    });
-  },
-
-  // GET /auth/me - Obtener datos del usuario actual (para el frontend)
-  me(req, res) {
-    if (!req.session.usuario) {
-      return res.status(401).json({ exito: false, autenticado: false });
-    }
-    res.json({ exito: true, autenticado: true, usuario: req.session.usuario });
-  },
-
-  
-
-  // Verificar que el usuario tiene una sesión activa (está logueado)
-  verificarSesion(req, res, next) {
-    if (!req.session || !req.session.usuario) {
-      return res.status(401).json({ exito: false, mensaje: 'Debes iniciar sesión para acceder a este recurso' });
-    }
-    next();
-  },
-
-  // Verificar que el usuario logueado tiene rol de administrador
-  verificarAdmin(req, res, next) {
-    // Asegurar que req.session.usuario existe antes de leer el rol
-    if (!req.session || !req.session.usuario || req.session.usuario.rol !== 'admin') {
-      return res.status(403).json({ exito: false, mensaje: 'Solo el administrador puede realizar esta acción' });
-    }
-    next();
-  }
-};
-
-module.exports = AuthController;
-
-const UsuarioModel = require('../models/usuarioModel');
+const UserModel = require('../models/userModel');
 
 class AuthController {
   static async login(req, res) {
     try {
       const { username, password } = req.body;
       if (!username || !password) {
-        return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
+        return res.status(400).json({ success: false, message: 'Username and password are required' });
       }
 
-      const user = await UsuarioModel.findByUsername(username);
-      if (!user || user.password !== password) {
-        return res.status(401).json({ error: 'Credenciales inválidas' });
+      const user = await UserModel.findByUsername(username);
+      if (!user) {
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      }
+      
+      const isMatch = (user.password === password) || (await bcrypt.compare(password, user.password).catch(() => false));
+      
+      if (!isMatch) {
+        return res.status(401).json({ success: false, message: 'Invalid credentials' });
       }
 
       req.session.user = {
@@ -184,105 +27,49 @@ class AuthController {
         points: user.points
       };
 
-      return res.json({ message: 'Login exitoso', user: req.session.user });
+      return res.status(200).json({
+        success: true,
+        message: 'Login successful',
+        user: req.session.user
+      });
     } catch (error) {
       console.error(error);
-      return res.status(500).json({ error: 'Error interno del servidor' });
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   }
 
   static logout(req, res) {
     req.session.destroy((err) => {
       if (err) {
-        return res.status(500).json({ error: 'No se pudo cerrar la sesión' });
+        return res.status(500).json({ success: false, message: 'Could not log out' });
       }
-      return res.json({ message: 'Sesión cerrada correctamente' });
+      return res.json({ success: true, message: 'Logout successful' });
     });
   }
 
   static async getSession(req, res) {
     if (req.session && req.session.user) {
-      // Obtener puntos frescos de la BD para la sesión
-      const user = await UsuarioModel.findById(req.session.user.id);
-      req.session.user.points = user.points;
+      const user = await UserModel.findById(req.session.user.id);
+      if (user) {
+         req.session.user.points = user.points;
+      }
       return res.json({ loggedIn: true, user: req.session.user });
     }
     return res.json({ loggedIn: false });
-const Usuario = require('../models/usuarioModel');
+  }
 
-class AuthController {
-  /**
-   * Gestionar la lógica del login.
-   * @param {Object} req - Objeto de petición Express.
-   * @param {Object} res - Objeto de respuesta Express.
-   */
-  static async login(req, res) {
-    try {
-      const { email, password } = req.body;
-
-      // Validación simple de campos requeridos
-      if (!email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Por favor, ingrese el email y la contraseña.'
-        });
-      }
-
-      // Buscar el usuario por email
-      const usuario = await Usuario.findByEmail(email);
-
-      // Si el usuario no existe
-      if (!usuario) {
-        return res.status(401).json({
-          success: false,
-          message: 'El correo electrónico no está registrado.'
-        });
-      }
-
-      // Validar la contraseña (comparación en texto plano para el prototipo/pruebas)
-      if (usuario.password !== password) {
-        return res.status(401).json({
-          success: false,
-          message: 'La contraseña es incorrecta.'
-        });
-      }
-
-      // Simular respuestas de éxito personalizadas según el rol de la historia de usuario
-      let mensajeRol = '';
-      switch (usuario.rol) {
-        case 'admin':
-          mensajeRol = 'Acceso total al sistema concedido. Bienvenido Administrador.';
-          break;
-        case 'lider':
-          mensajeRol = 'Acceso de gestión de tiempos de grupo concedido. Bienvenido Líder.';
-          break;
-        case 'colaborador':
-          mensajeRol = 'Acceso a tareas de desarrollo concedido. Bienvenido Colaborador.';
-          break;
-        default:
-          mensajeRol = 'Acceso concedido.';
-      }
-
-      // Retornar éxito con la información del usuario y su rol
-      return res.status(200).json({
-        success: true,
-        message: '¡Inicio de sesión exitoso!',
-        mensajeRol,
-        user: {
-          id: usuario.id,
-          nombre: usuario.nombre,
-          email: usuario.email,
-          rol: usuario.rol
-        }
-      });
-
-    } catch (error) {
-      console.error('Error en AuthController.login:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Ocurrió un error interno en el servidor.'
-      });
+  static verifySession(req, res, next) {
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized access. Please log in.' });
     }
+    next();
+  }
+
+  static verifyAdmin(req, res, next) {
+    if (!req.session || !req.session.user || req.session.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied. Admin role required.' });
+    }
+    next();
   }
 }
 

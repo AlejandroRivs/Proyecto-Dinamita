@@ -1,0 +1,15 @@
+[2026-06-18 11:45:00] FRONTEND ERROR (BROWSER CONSOLE):
+Uncaught TypeError: bootstrap.Modal is not a constructor
+at HTMLButtonElement.<anonymous>
+
+[2026-06-18 11:45:02] ROOT CAUSE ANALYSIS:
+El modal de creación de tareas en admin.html y admin_tareas.html no se abría debido a un error crítico de importación en el archivo HTML.
+Línea problemática encontrada:
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.css"></script>
+
+Motivo: Se estaba importando un archivo CSS (.css) dentro de una etiqueta <script> de JavaScript. Esto provocaba que el navegador ignorara por completo la lógica interactiva de Bootstrap. Sin este archivo de JavaScript cargado, los atributos data-bs-toggle="modal" y la clase de Bootstrap Modal dejan de funcionar por completo.
+
+[2026-06-18 11:47:15] RESOLUCIÓN:
+Se reemplazó masivamente la extensión `.css` por `.js` en todos los archivos HTML (login.html, admin.html, admin_tareas.html, colaborador.html, etc.).
+
+NOTA: Dado que este es un error exclusivo del lado del cliente (Frontend / Navegador), no produce bloqueos en la terminal de Node.js en el backend, por lo que el error solo es visible en la consola de Chrome/Edge (presionando F12). Por favor, asegúrate de refrescar la página (Ctrl + F5) en tu navegador para obtener la versión corregida de los archivos HTML.
