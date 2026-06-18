@@ -1,0 +1,268 @@
+/* ============================================================ 
+   styles.css - Estilos Premium y Responsivos 
+   Esquema de colores moderno, gradientes y micro-animaciones 
+   ============================================================ */ 
+
+/* Importar tipografía moderna de Google Fonts */ 
+@import url('https://googleapis.com'); 
+
+/* Variables CSS para facilitar la consistencia en el diseño */ 
+:root { 
+  --color-fondo: #0f172a; /* Slate 900 oscuro */ 
+  --color-tarjeta: #1e293b; /* Slate 800 */ 
+  --color-borde: #334155; /* Slate 700 */ 
+  --color-texto: #f8fafc; /* Slate 50 */ 
+  --color-texto-mutado: #94a3b8;/* Slate 400 */ 
+  /* Colores del sistema y acentos */ 
+  --primario: #6366f1; /* Indigo 500 */ 
+  --primario-brillo: #818cf8; 
+  --exito: #10b981; /* Esmeralda 500 */ 
+  --advertencia: #f59e0b; /* Ámbar 500 */ 
+  --peligro: #ef4444; /* Rojo 500 */ 
+  --gradiente: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); 
+  --gradiente-exito: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+  --gradiente-en-revision: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); 
+} 
+
+/* Reset básico */ 
+* { 
+  margin: 0; 
+  padding: 0; 
+  box-sizing: border-box; 
+} 
+
+body { 
+  font-family: 'Outfit', sans-serif; 
+  background-color: var(--color-fondo); 
+  color: var(--color-texto); 
+  min-height: 100vh; 
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center; 
+  align-items: center; 
+  overflow-x: hidden; 
+} 
+
+/* ── Estructura General del Contenedor ────────────────────── */ 
+.contenedor { 
+  width: 90%; 
+  max-width: 1200px; 
+  margin: 2rem auto; 
+  padding: 2rem; 
+  background-color: var(--color-tarjeta); 
+  border: 1px solid var(--color-borde); 
+  border-radius: 16px; 
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3); 
+  transition: transform 0.3s ease; 
+} 
+
+.cabecera { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 2rem; 
+  border-bottom: 1px solid var(--color-borde); 
+  padding-bottom: 1rem; 
+} 
+
+h1 { 
+  font-size: 2rem; 
+  font-weight: 700; 
+  background: var(--gradiente); 
+  -webkit-background-clip: text; 
+  background-clip: text; /* <-- Línea estándar agregada para compatibilidad */
+  -webkit-text-fill-color: transparent; 
+} 
+
+.usuario-info { 
+  display: flex; 
+  align-items: center; 
+  gap: 1rem; 
+} 
+
+.usuario-info span { 
+  font-weight: 500; 
+  color: var(--color-texto-mutado); 
+} 
+
+/* ── Formularios y Entradas ────────────────────────────────── */ 
+.formulario-grupo { 
+  margin-bottom: 1.5rem; 
+} 
+
+label { 
+  display: block; 
+  margin-bottom: 0.5rem; 
+  font-weight: 500; 
+  color: var(--color-texto-mutado); 
+} 
+
+input, textarea, select { 
+  width: 100%; 
+  padding: 0.75rem 1rem; 
+  background-color: rgba(15, 23, 42, 0.6); 
+  border: 1px solid var(--color-borde); 
+  border-radius: 8px; 
+  color: var(--color-texto); 
+  font-family: inherit; 
+  font-size: 1rem; 
+  transition: all 0.2s ease; 
+} 
+
+input:focus, textarea:focus, select:focus { 
+  outline: none; 
+  border-color: var(--primario); 
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); 
+} 
+
+/* ── Botones Premium ────────────────────────────────────────── */ 
+.btn { 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  padding: 0.75rem 1.5rem; 
+  font-size: 1rem; 
+  font-weight: 600; 
+  border-radius: 8px; 
+  border: none; 
+  cursor: pointer; 
+  transition: all 0.2s ease; 
+  font-family: inherit; 
+  text-decoration: none; 
+  gap: 0.5rem; 
+} 
+
+.btn-primario { 
+  background: var(--gradiente); 
+  color: #fff; 
+} 
+
+.btn-primario:hover { 
+  transform: translateY(-2px); 
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); 
+} 
+
+.btn-peligro { 
+  background-color: var(--peligro); 
+  color: #fff; 
+} 
+
+.btn-peligro:hover { 
+  background-color: #dc2626; 
+  transform: translateY(-2px); 
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); 
+} 
+
+.btn-accion { 
+  padding: 0.5rem 1rem; 
+  font-size: 0.875rem; 
+  border-radius: 6px; 
+} 
+
+/* ── Login Específico ───────────────────────────────────────── */ 
+.login-contenedor { 
+  width: 100%; 
+  max-width: 450px; 
+  padding: 2.5rem; 
+  background-color: var(--color-tarjeta); 
+  border: 1px solid var(--color-borde); 
+  border-radius: 16px; 
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); 
+  text-align: center; 
+} 
+
+.login-contenedor h2 { 
+  font-size: 1.75rem; 
+  margin-bottom: 0.5rem; 
+  font-weight: 700; 
+} 
+
+.login-contenedor p { 
+  color: var(--color-texto-mutado); 
+  margin-bottom: 2rem; 
+} 
+
+/* ── Tarjetas y Tabla de Tareas ───────────────────────────── */ 
+.tabla-responsive { 
+  width: 100%; 
+  overflow-x: auto; 
+  margin-top: 1.5rem; 
+  border-radius: 8px; 
+  border: 1px solid var(--color-borde); 
+} 
+
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  text-align: left; 
+} 
+
+th, td { 
+  padding: 1rem; 
+  border-bottom: 1px solid var(--color-borde); 
+} 
+
+th { 
+  background-color: rgba(15, 23, 42, 0.4); 
+  color: var(--color-texto-mutado); 
+  font-weight: 600; 
+  text-transform: uppercase; 
+  font-size: 0.75rem; 
+  letter-spacing: 0.05em; 
+} 
+
+tr:last-child td { 
+  border-bottom: none; 
+} 
+
+/* Estados de Tareas */ 
+.badge { 
+  display: inline-flex; 
+  align-items: center; 
+  padding: 0.25rem 0.75rem; 
+  border-radius: 9999px; 
+  font-size: 0.75rem; 
+  font-weight: 600; 
+  text-transform: uppercase; 
+} 
+
+.badge-pendiente { 
+  background-color: rgba(99, 102, 241, 0.15); 
+  color: var(--primario-brillo); 
+  border: 1px solid rgba(99, 102, 241, 0.3); 
+} 
+
+.badge-en-revision { 
+  background-color: rgba(245, 158, 11, 0.15); 
+  color: var(--advertencia); 
+  border: 1px solid rgba(245, 158, 11, 0.3); 
+} 
+
+.badge-completada { 
+  background-color: rgba(16, 185, 129, 0.15); 
+  color: var(--exito); 
+  border: 1px solid rgba(16, 185, 129, 0.3); 
+} 
+
+/* Micro-animación en hover de las filas */ 
+tr { 
+  transition: background-color 0.2s ease; 
+} 
+
+tr:hover { 
+  background-color: rgba(255, 255, 255, 0.02); 
+} 
+
+/* Diseño en grid para secciones duales en Admin Panel */ 
+.panel-grid { 
+  display: grid; 
+  grid-template-columns: 1fr; 
+  gap: 2rem; 
+} 
+
+@media (min-width: 768px) { 
+  .panel-grid { 
+    grid-template-columns: 350px 1fr; 
+  } 
+}
+
