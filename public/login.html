@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Página de inicio de sesión modular para Proyecto Dinamita.">
+  <title>Iniciar Sesión - Proyecto Dinamita</title>
+  <!-- Enlace al archivo CSS de estilos -->
+  <!-- Tipografía moderna desde Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <h1>Proyecto Dinamita</h1>
+        <p>Inicia sesión para acceder a tu panel de control</p>
+      </div>
+
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="email">Correo Electrónico</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            placeholder="ejemplo@dinamita.com" 
+            required 
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            placeholder="••••••••" 
+            required 
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button type="submit" id="login-btn" class="btn-primary">
+          <span class="btn-text">Ingresar</span>
+          <span class="btn-loader">Cargando...</span>
+        </button>
+      </form>
+
+      <!-- Contenedor para mostrar mensajes de éxito o error de forma dinámica -->
+      <div id="message-container" class="message-container hidden"></div>
+      
+      <div class="login-footer">
+        <p>Prueba los roles con estas credenciales:</p>
+        <div class="credentials-info">
+          <div><strong>Colaborador:</strong> colaborador@dinamita.com / colaborador123</div>
+          <div><strong>Líder:</strong> lider@dinamita.com / lider123</div>
+          <div><strong>Admin:</strong> admin@dinamita.com / admin123</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById('login-form');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const loginBtn = document.getElementById('login-btn');
+      const messageContainer = document.getElementById('message-container');
+
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        // Ocultar mensajes previos
+        messageContainer.className = 'message-container hidden';
+        messageContainer.textContent = '';
+        
+        // Activar estado de carga en el botón
+        loginBtn.classList.add('loading');
+        loginBtn.disabled = true;
+
+        try {
+          // Enviar la petición POST al endpoint de login
+          const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+          });
+
+          const data = await response.json();
+
+          // Desactivar estado de carga
+          loginBtn.classList.remove('loading');
+          loginBtn.disabled = false;
+
+          if (response.ok && data.success) {
+            // Éxito: Mostrar mensaje y detalles del rol
+            messageContainer.className = 'message-container success';
+            messageContainer.innerHTML = `
+              <strong>${data.message}</strong><br>
+              <span>${data.mensajeRol}</span><br>
+              <small>Rol: <span class="role-badge ${data.user.rol}">${data.user.rol.toUpperCase()}</span></small>
+            `;
+            // Limpiar formulario al iniciar sesión con éxito
+            loginForm.reset();
+          } else {
+            // Error de credenciales o validación
+            messageContainer.className = 'message-container error';
+            messageContainer.textContent = data.message || 'Error al iniciar sesión.';
+          }
+        } catch (error) {
+          // Error de red/servidor
+          loginBtn.classList.remove('loading');
+          loginBtn.disabled = false;
+          messageContainer.className = 'message-container error';
+          messageContainer.textContent = 'No se pudo conectar con el servidor. Intente más tarde.';
+          console.error('Error de login:', error);
+        }
+      });
+    });
+  </script>
+</body>
+</html>
