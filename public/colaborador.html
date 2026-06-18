@@ -22,7 +22,7 @@
     </header>
 
     <div id="lockAlert" class="card" style="display: none; background: rgba(239, 68, 68, 0.1); border-color: var(--danger); color: var(--danger); font-weight: 500;">
-        ⚠️ El administrador ha bloqueado temporalmente todos los cronómetros del sistema.
+        El administrador ha bloqueado temporalmente todos los cronómetros del sistema.
     </div>
 
     <!-- Kanban Board -->
@@ -45,12 +45,12 @@
 
     <!-- Tareas Extras -->
     <div class="card" style="margin-top: 30px;">
-        <h3 style="margin-top: 0; color: #a855f7;">🎁 Bolsa de Tareas Extras</h3>
+        <h3 style="margin-top: 0; color: #a855f7;">Bolsa de Tareas Extras</h3>
         <div id="extrasLockedMsg" style="color: var(--warning); font-weight: 500;">
-            🔒 Completa el 100% de tus tareas principales pendientes para poder autoasignarte y realizar tareas extras (bonos de puntos).
+            Completa el 100% de tus tareas principales pendientes para poder autoasignarte y realizar tareas extras (bonos de puntos).
         </div>
         <div id="extrasUnlocked" style="display: none;">
-            <p style="color: var(--success); font-weight: 500; margin-bottom: 15px;">🎉 Has completado tus tareas principales. Puedes seleccionar una tarea extra voluntaria de la bolsa:</p>
+            <p style="color: var(--success); font-weight: 500; margin-bottom: 15px;">Has completado tus tareas principales. Puedes seleccionar una tarea extra voluntaria de la bolsa:</p>
             <div id="availableExtrasList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
                 <!-- Tareas extras disponibles -->
             </div>
@@ -133,16 +133,16 @@
 
             let actionsHTML = '';
             if (t.status === 'Pending') {
-                actionsHTML = `<button class="btn btn-success" onclick="startTask(${t.id})">▶ Iniciar</button>`;
+                actionsHTML = `<button class="btn btn-success" onclick="startTask(${t.id})">Iniciar</button>`;
             } else if (t.status === 'In Progress') {
                 actionsHTML = `
-                    <button class="btn btn-warning" style="margin-right: 5px;" onclick="pauseTask(${t.id})">⏸ Pausar</button>
-                    <button class="btn btn-danger" onclick="finalizeTask(${t.id})">⏹ Finalizar</button>
+                    <button class="btn btn-warning" style="margin-right: 5px;" onclick="pauseTask(${t.id})">Pausar</button>
+                    <button class="btn btn-danger" onclick="finalizeTask(${t.id})">Finalizar</button>
                 `;
             } else if (t.status === 'Paused') {
                 actionsHTML = `
-                    <button class="btn btn-success" style="margin-right: 5px;" onclick="startTask(${t.id})">▶ Reanudar</button>
-                    <button class="btn btn-danger" onclick="finalizeTask(${t.id})">⏹ Finalizar</button>
+                    <button class="btn btn-success" style="margin-right: 5px;" onclick="startTask(${t.id})">Reanudar</button>
+                    <button class="btn btn-danger" onclick="finalizeTask(${t.id})">Finalizar</button>
                 `;
             } else {
                 actionsHTML = `<span style="color: var(--success); font-weight: 600;">Completado (+${t.points_awarded} PP)</span>`;
@@ -181,7 +181,7 @@
                             <div style="font-weight:600;">${t.title}</div>
                             <p style="font-size:12px; color:var(--text-muted); margin: 5px 0;">${t.description || ''}</p>
                             <div style="font-size:12px; font-weight:500; color: #a855f7; margin-bottom:10px;">Complejidad: ${t.complexity}</div>
-                            <button class="btn btn-sm" style="background:#a855f7; width:100%;" onclick="autoAssign(${t.id})">📥 Autoasignar</button>
+                            <button class="btn btn-sm" style="background:#a855f7; width:100%;" onclick="autoAssign(${t.id})">Autoasignar</button>
                         </div>
                     `;
                 });
