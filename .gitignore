@@ -1,2 +1,15 @@
 node_modules/
 .env
+
+node_modules/
+package-lock.json
+
+.env
+
+config/
+db/init_db.js
+
+models/models.txt
+public/css/
+public/estilos_css/
+public/index.html

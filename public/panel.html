@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Panel de administración de tareas para Proyecto Dinamita.">
+  <title>Administración - Gestión de Tareas</title>
+  <link rel="stylesheet" href="/estilos_css/styles.css">
+</head>
+<body>
+
+  <div class="contenedor" style="margin-top: 1rem; width: 95%; max-width: 1300px;">
+    <header class="cabecera">
+      <div>
+        <h1>Panel de Administración</h1>
+        <p style="color: var(--color-texto-mutado);">Auditoría, Creación y Asignación de Tareas</p>
+      </div>
+      <div class="usuario-info">
+        <span id="nombre-admin">Administrador</span>
+        <button id="btn-logout" class="btn btn-peligro btn-accion">Cerrar Sesión</button>
+      </div>
+    </header>
+
+    <div id="alerta-global" style="display: none; padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; font-weight: 500;"></div>
+
+    <div class="panel-grid">
+      <!-- ── SECCIÓN 1: Formulario para crear tareas ──────────────── -->
+      <section style="background-color: rgba(15, 23, 42, 0.3); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--color-borde);">
+        <h3 style="margin-bottom: 1.5rem; font-weight: 600;">Nueva Tarea</h3>
+        <form id="formulario-crear">
+          <div class="formulario-grupo">
+            <label for="titulo">Título de la Tarea</label>
+            <input type="text" id="titulo" required placeholder="Ej: Implementar Login">
+            <small style="color: var(--color-texto-mutado); display: block; margin-top: 0.25rem; font-size: 0.8rem;">Solo letras, números y espacios</small>
+          </div>
+
+          <div class="formulario-grupo">
+            <label for="descripcion">Descripción</label>
+            <textarea id="descripcion" rows="4" required placeholder="Describe detalladamente los requisitos de la tarea..."></textarea>
+            <small style="color: var(--color-texto-mutado); display: block; margin-top: 0.25rem; font-size: 0.8rem;">Mínimo 10 caracteres. Solo letras, números y espacios</small>
+          </div>
+
+          <div class="formulario-grupo">
+            <label for="tiempo_sugerido">Tiempo Sugerido</label>
+            <input type="text" id="tiempo_sugerido" required placeholder="Ej: 4 horas, 2 días">
+          </div>
+
+          <div class="formulario-grupo">
+            <label for="usuario_asignado">Asignar a (Disponible sin tareas pendientes)</label>
+            <select id="usuario_asignado" required>
+              <!-- Se cargará dinámicamente con AJAX -->
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primario" style="width: 100%;">
+            Crear y Asignar Tarea
+          </button>
+        </form>
+      </section>
+
+      <!-- ── SECCIÓN 2: Listado y Auditoría de Tareas ──────────────── -->
+      <section style="background-color: rgba(15, 23, 42, 0.3); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--color-borde);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 style="font-weight: 600;">Listado de Tareas</h3>
+          <button id="btn-recargar" class="btn btn-primario btn-accion">Recargar Lista</button>
+        </div>
+
+        <div class="tabla-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Tarea</th>
+                <th>Asignado A</th>
+                <th>Tiempo Estimado</th>
+                <th>Estado</th>
+                <th style="text-align: right;">Acciones de Auditoría</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-tareas-cuerpo">
+              <!-- Se cargará dinámicamente con AJAX -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // Validar sesión del administrador nada más cargar la página
+    async function validarSesion() {
+      try {
+        const respuesta = await fetch('/auth/me');
+        const datos = await respuesta.json();
+        if (!datos.autenticado || datos.usuario.rol !== 'admin') {
+          window.location.href = '/login.html';
+        } else {
+          document.getElementById('nombre-admin').textContent = datos.usuario.nombre;
+        }
+      } catch (error) {
+        window.location.href = '/login.html';
+      }
+    }
+
+    // Mostrar notificaciones dinámicas
+    function mostrarAlerta(texto, esError = true) {
+      const alerta = document.getElementById('alerta-global');
+      alerta.textContent = texto;
+      alerta.style.display = 'block';
+      if (esError) {
+        alerta.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+        alerta.style.color = '#ef4444';
+        alerta.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+      } else {
+        alerta.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+        alerta.style.color = '#10b981';
+        alerta.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+      }
+      setTimeout(() => {
+        alerta.style.display = 'none';
+      }, 5000);
+    }
+
+    // Cargar los usuarios disponibles sin tareas pendientes
+    async function cargarUsuariosDisponibles() {
+      try {
+        const respuesta = await fetch('/tareas/usuarios-disponibles');
+        const datos = await respuesta.json();
+        const select = document.getElementById('usuario_asignado');
+        select.innerHTML = '';
+
+        if (datos.usuarios && datos.usuarios.length > 0) {
+          datos.usuarios.forEach(u => {
+            const opcion = document.createElement('option');
+            opcion.value = u.id;
+            opcion.textContent = `${u.nombre} (${u.email})`;
+            select.appendChild(opcion);
+          });
+        } else {
+          const opcion = document.createElement('option');
+          opcion.textContent = 'No hay usuarios disponibles';
+          opcion.disabled = true;
+          select.appendChild(opcion);
+        }
+      } catch (error) {
+        console.error('Error cargando usuarios:', error);
+      }
+    }
+
+    // Cargar todas las tareas creadas
+    async function cargarTareas() {
+      try {
+        const respuesta = await fetch('/tareas/todas');
+        const datos = await respuesta.json();
+        const cuerpoTabla = document.getElementById('tabla-tareas-cuerpo');
+        cuerpoTabla.innerHTML = '';
+
+        if (datos.tareas && datos.tareas.length > 0) {
+          datos.tareas.forEach(t => {
+            const fila = document.createElement('tr');
+
+            // Determinar clase badge según el estado
+            let badgeClase = 'badge-pendiente';
+            if (t.estado === 'en_revision') badgeClase = 'badge-en-revision';
+            if (t.estado === 'completada') badgeClase = 'badge-completada';
+
+            // Generar los botones dinámicos de acción según el estado de la tarea
+            let botonesAccion = '';
+            if (t.estado === 'pendiente') {
+              botonesAccion = `
+                <button class="btn btn-primario btn-accion" style="background-color: var(--advertencia);" onclick="actualizarEstado(${t.id}, 'en_revision')">
+                  Revisar
+                </button>
+              `;
+            } else if (t.estado === 'en_revision') {
+              botonesAccion = `
+                <button class="btn btn-primario btn-accion" style="background: var(--gradiente-exito);" onclick="actualizarEstado(${t.id}, 'completada')">
+                  Completar
+                </button>
+              `;
+            } else {
+              botonesAccion = `<span style="color: var(--color-texto-mutado); font-size: 0.85rem;">Auditada ✔</span>`;
+            }
+
+            // Añadir botón de eliminación
+            botonesAccion += `
+              <button class="btn btn-peligro btn-accion" style="margin-left: 0.5rem; padding: 0.4rem 0.6rem;" onclick="eliminarTarea(${t.id})">
+                🗑
+              </button>
+            `;
+
+            fila.innerHTML = `
+              <td>
+                <strong style="display:block;">${t.titulo}</strong>
+                <span style="font-size:0.85rem; color:var(--color-texto-mutado);">${t.descripcion}</span>
+              </td>
+              <td>${t.nombre_asignado}</td>
+              <td>${t.tiempo_sugerido}</td>
+              <td><span class="badge ${badgeClase}">${t.estado.replace('_', ' ')}</span></td>
+              <td style="text-align: right;">${botonesAccion}</td>
+            `;
+
+            cuerpoTabla.appendChild(fila);
+          });
+        } else {
+          cuerpoTabla.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--color-texto-mutado);">No se han creado tareas todavía.</td></tr>`;
+        }
+      } catch (error) {
+        console.error('Error cargando tareas:', error);
+      }
+    }
+
+    // Cambiar el estado de una tarea
+    async function actualizarEstado(id, nuevoEstado) {
+      try {
+        const respuesta = await fetch(`/tareas/estado/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nuevoEstado })
+        });
+        const datos = await respuesta.json();
+        if (datos.exito) {
+          mostrarAlerta(datos.mensaje, false);
+          cargarTareas();
+          cargarUsuariosDisponibles(); // El estado del usuario puede haber cambiado
+        } else {
+          mostrarAlerta(datos.mensaje);
+        }
+      } catch (error) {
+        mostrarAlerta('Error de red al actualizar estado');
+      }
+    }
+
+    // Eliminar una tarea por completo
+    async function eliminarTarea(id) {
+      if (!confirm('¿Seguro que deseas eliminar esta tarea?')) return;
+      try {
+        const respuesta = await fetch(`/tareas/eliminar/${id}`, {
+          method: 'DELETE'
+        });
+        const datos = await respuesta.json();
+        if (datos.exito) {
+          mostrarAlerta(datos.mensaje, false);
+          cargarTareas();
+          cargarUsuariosDisponibles();
+        } else {
+          mostrarAlerta(datos.mensaje);
+        }
+      } catch (error) {
+        mostrarAlerta('Error de red al eliminar la tarea');
+      }
+    }
+
+    // Enviar el formulario para crear nueva tarea
+    document.getElementById('formulario-crear').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const titulo = document.getElementById('titulo').value;
+      const descripcion = document.getElementById('descripcion').value;
+      const tiempoSugerido = document.getElementById('tiempo_sugerido').value;
+      const usuarioAsignadoId = document.getElementById('usuario_asignado').value;
+
+      try {
+        const respuesta = await fetch('/tareas/crear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ titulo, descripcion, tiempoSugerido, usuarioAsignadoId })
+        });
+
+        const datos = await respuesta.json();
+        if (datos.exito) {
+          mostrarAlerta(datos.mensaje, false);
+          document.getElementById('formulario-crear').reset();
+          cargarTareas();
+          cargarUsuariosDisponibles();
+        } else {
+          mostrarAlerta(datos.mensaje);
+        }
+      } catch (error) {
+        mostrarAlerta('Error al enviar los datos al servidor');
+      }
+    });
+
+    // Cerrar sesión
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      try {
+        const respuesta = await fetch('/auth/logout', { method: 'POST' });
+        const datos = await respuesta.json();
+        if (datos.exito) {
+          window.location.href = '/login.html';
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    // Eventos del botón de recargar
+    document.getElementById('btn-recargar').addEventListener('click', () => {
+      cargarTareas();
+      cargarUsuariosDisponibles();
+    });
+
+    // Carga inicial
+    validarSesion();
+    cargarUsuariosDisponibles();
+    cargarTareas();
+  </script>
+</body>
+</html>

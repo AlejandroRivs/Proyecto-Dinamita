@@ -1,0 +1,100 @@
+// ============================================================
+// models/tareaModel.js - Consultas a la tabla de tareas
+// Todas las operaciones de base de datos sobre las tareas
+// ============================================================
+
+const pool = require('../db/conexion');
+
+const TareaModel = {
+
+  // Insertar una nueva tarea en la base de datos
+  // Recibe un objeto con todos los campos necesarios
+  async crear({ titulo, descripcion, tiempoSugerido, usuarioAsignadoId, creadoPorId }) {
+    const [resultado] = await pool.query(
+      `INSERT INTO tareas (titulo, descripcion, tiempo_sugerido, estado, usuario_asignado_id, creado_por_id)
+       VALUES (?, ?, ?, 'pendiente', ?, ?)`,
+      [titulo, descripcion, tiempoSugerido, usuarioAsignadoId, creadoPorId]
+    );
+    // Retorna el ID de la tarea recién creada
+    return resultado.insertId;
+  },
+
+  // Obtener todas las tareas con nombre del usuario asignado y del creador
+  // Se usa en el panel de administración para mostrar el listado completo
+  async obtenerTodas() {
+    const [filas] = await pool.query(
+      `SELECT
+         t.id,
+         t.titulo,
+         t.descripcion,
+         t.tiempo_sugerido,
+         t.estado,
+         t.creado_en,
+         t.actualizado_en,
+         ua.nombre  AS nombre_asignado,
+         ua.email   AS email_asignado,
+         cp.nombre  AS nombre_creador
+       FROM tareas t
+       JOIN usuarios ua ON t.usuario_asignado_id = ua.id
+       JOIN usuarios cp ON t.creado_por_id       = cp.id
+       ORDER BY t.creado_en DESC`
+    );
+    return filas;
+  },
+
+  // Obtener las tareas asignadas a un usuario específico (vista del empleado)
+  async obtenerPorUsuario(usuarioId) {
+    const [filas] = await pool.query(
+      `SELECT
+         t.id,
+         t.titulo,
+         t.descripcion,
+         t.tiempo_sugerido,
+         t.estado,
+         t.creado_en,
+         t.actualizado_en,
+         cp.nombre AS nombre_creador
+       FROM tareas t
+       JOIN usuarios cp ON t.creado_por_id = cp.id
+       WHERE t.usuario_asignado_id = ?
+       ORDER BY t.creado_en DESC`,
+      [usuarioId]
+    );
+    return filas;
+  },
+
+  // Buscar una tarea por su ID (para validar antes de cambiar estado)
+  async buscarPorId(id) {
+    const [filas] = await pool.query(
+      'SELECT * FROM tareas WHERE id = ?',
+      [id]
+    );
+    return filas[0];
+  },
+
+  // Actualizar el estado de una tarea
+  // Los estados válidos son: 'pendiente', 'en_revision', 'completada'
+  async actualizarEstado(id, nuevoEstado) {
+    const [resultado] = await pool.query(
+      `UPDATE tareas
+       SET estado = ?, actualizado_en = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [nuevoEstado, id]
+    );
+    // affectedRows indica cuántas filas se modificaron (0 = no encontró la tarea)
+    return resultado.affectedRows;
+  },
+
+  // Eliminar una tarea por su ID
+  async eliminar(id) {
+    const [resultado] = await pool.query(
+      'DELETE FROM tareas WHERE id = ?',
+      [id]
+    );
+    return resultado.affectedRows;
+  }
+
+};
+
+module.exports = TareaModel;
+
