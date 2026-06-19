@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (err) {}
     });
 
+    let activeTimers = [];
+    let timerInterval = null;
+
     // 2. Fetch My Tasks
     async function fetchMyTasks() {
         try {
@@ -33,6 +36,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const tbody = document.getElementById('my-tasks-body');
             tbody.innerHTML = '';
+            
+            // Clear previous interval
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                activeTimers = [];
+            }
             
             tasks.forEach(task => {
                 const tr = document.createElement('tr');
@@ -49,6 +58,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <button class="btn btn-sm text-tc-primary border-0" onclick="pauseTask(${task.id})" title="Pausar"><span class="material-symbols-outlined">pause_circle</span></button>
                         <button class="btn btn-sm text-success border-0" onclick="completeTask(${task.id})" title="Finalizar"><span class="material-symbols-outlined">check_circle</span></button>
                     `;
+                    activeTimers.push({
+                        id: task.id,
+                        durationMs: task.total_duration_ms || 0,
+                        frontendStartTime: Date.now()
+                    });
                 } else if (task.status === 'Paused') {
                     statusBadge = `<span class="status-badge" style="background-color: #ffc107; color: #fff;">Pausado</span>`;
                     actionBtn = `<button class="btn btn-sm text-tc-secondary border-0" onclick="startTask(${task.id})" title="Reanudar"><span class="material-symbols-outlined">play_circle</span></button>`;
@@ -62,6 +76,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="fw-bold" style="color: var(--tc-primary);">${task.title} <span class="badge bg-light text-muted ms-2">${task.complexity}</span></div>
                         <small class="text-muted">${task.description}</small>
                         ${task.is_extra ? '<div class="badge bg-warning mt-1">Extra</div>' : ''}
+                        <div class="mt-2 d-flex align-items-center" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--tc-secondary);">
+                            <span class="material-symbols-outlined me-1" style="font-size: 1.1rem;">timer</span> 
+                            <span id="timer-${task.id}">${task.formatted_duration || '00:00:00'}</span>
+                        </div>
                     </td>
                     <td class="py-3 px-4">${statusBadge}</td>
                     <td class="py-3 px-4 text-center">
@@ -74,9 +92,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (tasks.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-muted">No tienes tareas asignadas.</td></tr>`;
             }
+
+            // Start interval if there are active timers
+            if (activeTimers.length > 0) {
+                timerInterval = setInterval(updateTimers, 1000);
+            }
         } catch (err) {
             console.error("Error fetching my tasks", err);
         }
+    }
+
+    function formatMsToTime(ms) {
+        let seconds = Math.floor(ms / 1000);
+        let minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        seconds = seconds % 60;
+        minutes = minutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function updateTimers() {
+        const now = Date.now();
+        activeTimers.forEach(t => {
+            const el = document.getElementById(`timer-${t.id}`);
+            if (el) {
+                const elapsedSinceFetch = now - t.frontendStartTime;
+                const currentDuration = t.durationMs + elapsedSinceFetch;
+                el.textContent = formatMsToTime(currentDuration);
+            }
+        });
     }
 
     // 3. Fetch Extra Tasks
